@@ -115,6 +115,7 @@ export function AuthScreen() {
             value={phone}
             onChange={(e) => handlePhoneChange(e.target.value)}
             placeholder="+48 600 000 000"
+            autoFocus
           />
 
           <PushButton
