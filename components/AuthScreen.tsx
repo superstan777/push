@@ -1,0 +1,154 @@
+import { useEffect, useRef, useState } from "react";
+import { auth } from "@/lib/firebase";
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  type ConfirmationResult,
+} from "firebase/auth";
+
+import { Input } from "@/components/ui/input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import { PushButton } from "./PushButton";
+import { Spinner } from "./ui/spinner";
+
+export function AuthScreen() {
+  const [phone, setPhone] = useState("+48");
+  const [otp, setOtp] = useState("");
+  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(
+    null
+  );
+
+  const [loading, setLoading] = useState(false);
+  const [hasOtpError, setHasOtpError] = useState(false);
+  const [otpKey, setOtpKey] = useState(0);
+  const [isVerified, setIsVerified] = useState(false); // ✅ KLUCZOWY STAN
+
+  const hasSubmittedRef = useRef(false);
+
+  const setupRecaptcha = () => {
+    if (!(window as any).recaptchaVerifier) {
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(
+        auth,
+        "recaptcha-container",
+        { size: "invisible" }
+      );
+    }
+  };
+
+  const onSendSMS = async () => {
+    try {
+      setLoading(true);
+      setupRecaptcha();
+      const verifier = (window as any).recaptchaVerifier;
+      const result = await signInWithPhoneNumber(auth, phone, verifier);
+      setConfirmation(result);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onVerifyCode = async () => {
+    if (!confirmation || hasSubmittedRef.current) return;
+
+    try {
+      hasSubmittedRef.current = true;
+      setLoading(true);
+      setHasOtpError(false);
+
+      await confirmation.confirm(otp);
+      setIsVerified(true); // ✅ BLOKUJE POWRÓT OTP
+    } catch (err) {
+      hasSubmittedRef.current = false;
+      setOtp("");
+      setHasOtpError(true);
+      setOtpKey((k) => k + 1);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // auto submit
+  useEffect(() => {
+    if (otp.length === 6) {
+      onVerifyCode();
+    }
+  }, [otp]);
+
+  // blur podczas loadingu
+  useEffect(() => {
+    if (loading) {
+      (document.activeElement as HTMLElement | null)?.blur();
+    }
+  }, [loading]);
+
+  const handleOtpChange = (value: string) => {
+    setOtp(value);
+    if (hasOtpError) setHasOtpError(false);
+  };
+
+  return (
+    <div className="flex flex-col gap-6 p-8 items-center justify-center h-screen">
+      <div id="recaptcha-container" />
+
+      {/* PHONE */}
+      {!confirmation && (
+        <>
+          <Input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+48 600 000 000"
+          />
+
+          <PushButton
+            onClick={onSendSMS}
+            disabled={loading || phone.length < 9}
+          />
+        </>
+      )}
+
+      {/* OTP */}
+      {confirmation && !isVerified && (
+        <div className="relative w-full max-w-xs flex justify-center">
+          <InputOTP
+            key={otpKey}
+            maxLength={6}
+            value={otp}
+            onChange={handleOtpChange}
+            autoFocus
+            disabled={loading}
+          >
+            <InputOTPGroup
+              className={[
+                "flex justify-center rounded-md p-2 transition-colors",
+                hasOtpError && "animate-[shake_0.35s_ease-in-out]",
+              ].join(" ")}
+            >
+              {Array.from({ length: 6 }).map((_, i) => (
+                <InputOTPSlot key={i} index={i} />
+              ))}
+            </InputOTPGroup>
+          </InputOTP>
+
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm rounded-md">
+              <Spinner />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VERIFIED STATE (opcjonalny placeholder) */}
+      {isVerified && (
+        <div className="flex items-center justify-center">
+          <Spinner />
+        </div>
+      )}
+    </div>
+  );
+}
