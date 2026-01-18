@@ -9,27 +9,45 @@ export interface UserData {
   lastCompletedDate?: string;
 }
 
-// Pobiera dane usera lub tworzy go, jeśli loguje się pierwszy raz
 export const getOrCreateUser = async (
   uid: string,
-  phoneNumber: string
+  phoneNumber: string,
 ): Promise<UserData> => {
   const userRef = doc(db, "users", uid);
   const userSnap = await getDoc(userRef);
 
   if (userSnap.exists()) {
     return userSnap.data() as UserData;
-  } else {
-    // Nowy użytkownik - Dzień 1
-    const newUser: UserData = {
-      phoneNumber,
-      currentDayNumber: 1,
-      lastTestResult: 0,
-      startDate: Timestamp.now(),
-    };
-    await setDoc(userRef, newUser);
-    return newUser;
   }
+
+  const startDay = 1;
+  const initialTestResult = 0;
+
+  const newUser: UserData = {
+    phoneNumber,
+    currentDayNumber: startDay,
+    lastTestResult: initialTestResult,
+    startDate: Timestamp.now(),
+  };
+
+  await setDoc(userRef, newUser);
+
+  const firstWorkout: Workout = generateWorkoutPlan(
+    startDay,
+    initialTestResult,
+  );
+
+  const firstWorkoutRef = doc(
+    db,
+    "users",
+    uid,
+    "workouts",
+    startDay.toString(),
+  );
+
+  await setDoc(firstWorkoutRef, firstWorkout);
+
+  return newUser;
 };
 
 export interface Workout {
@@ -42,7 +60,7 @@ export interface Workout {
 
 export const getWorkout = async (
   uid: string,
-  dayNumber: number
+  dayNumber: number,
 ): Promise<Workout | null> => {
   const docRef = doc(db, "users", uid, "workouts", dayNumber.toString());
   const docSnap = await getDoc(docRef);
@@ -56,7 +74,7 @@ export const getWorkout = async (
 
 export const generateWorkoutPlan = (
   dayNumber: number,
-  lastTestResult: number
+  lastTestResult: number,
 ): Workout => {
   // 1. DZIEŃ TESTU (nie zmieniamy)
   if ((dayNumber - 1) % 28 === 0) {
@@ -93,7 +111,7 @@ export const generateWorkoutPlan = (
 export const completeWorkout = async (
   uid: string,
   currentDay: number,
-  doneSets: number[]
+  doneSets: number[],
 ) => {
   const userRef = doc(db, "users", uid);
   const currentWorkoutRef = doc(
@@ -101,7 +119,7 @@ export const completeWorkout = async (
     "users",
     uid,
     "workouts",
-    currentDay.toString()
+    currentDay.toString(),
   );
 
   // 1. Pobieramy aktualne dane użytkownika
@@ -123,7 +141,7 @@ export const completeWorkout = async (
       doneSets: doneSets,
       completedAt: Timestamp.now(),
     },
-    { merge: true }
+    { merge: true },
   );
 
   // 5. Aktualizujemy profil użytkownika (następny dzień, wynik testu i data zakończenia)
@@ -135,7 +153,7 @@ export const completeWorkout = async (
       lastTestResult: testResult,
       lastCompletedDate: today, // To pole blokuje kolejny trening dzisiaj
     },
-    { merge: true }
+    { merge: true },
   );
 
   // 6. Generujemy i zapisujemy plan na kolejny dzień treningowy

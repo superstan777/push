@@ -5,7 +5,7 @@ import type { Workout } from "@/lib/db-service";
 
 interface WorkoutScreenProps {
   workout: Workout;
-  onComplete: (results: number[]) => void; // Przekazujemy wyniki do App.tsx
+  onComplete: (results: number[]) => void;
 }
 
 type Step = "set" | "rest";
@@ -14,7 +14,6 @@ export function WorkoutScreen({ workout, onComplete }: WorkoutScreenProps) {
   const [step, setStep] = useState<Step>("set");
   const [currentSet, setCurrentSet] = useState(0);
 
-  // Tablica do zapisywania faktycznie wykonanych pompek w każdej serii
   const [completedReps, setCompletedReps] = useState<number[]>([]);
 
   const isTest = workout.type === "test";
@@ -24,7 +23,6 @@ export function WorkoutScreen({ workout, onComplete }: WorkoutScreenProps) {
     const newResults = [...completedReps, repsDone];
     setCompletedReps(newResults);
 
-    // Jeśli to był test LUB ostatnia seria treningu
     if (isTest || currentSet + 1 >= sets.length) {
       onComplete(newResults);
     } else {
@@ -45,13 +43,12 @@ export function WorkoutScreen({ workout, onComplete }: WorkoutScreenProps) {
             <div className="text-muted-foreground  tracking-widest text-sm">
               {isTest ? "as many as possible" : "target reps"}
             </div>
-            {/* Dla testu pokazujemy "0", co sugeruje start od zera/maxa */}
+
             <div className="text-8xl font-bold tracking-tighter">
               {isTest ? "?" : sets[currentSet]}
             </div>
 
             <RepsDrawer
-              // Jeśli to test, sugerujemy 0, jeśli trening - sugerujemy planowaną liczbę
               initialValue={isTest ? 0 : sets[currentSet]}
               onConfirm={(value) => handleNext(value)}
             />
@@ -59,10 +56,7 @@ export function WorkoutScreen({ workout, onComplete }: WorkoutScreenProps) {
         )}
 
         {step === "rest" && (
-          <RestTimer
-            duration={2} // Możesz to później wyciągnąć do bazy (np. 60-90 sek)
-            onComplete={handleRestComplete}
-          />
+          <RestTimer duration={2} onComplete={handleRestComplete} />
         )}
       </div>
     </div>
