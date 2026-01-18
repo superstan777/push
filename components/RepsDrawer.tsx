@@ -57,21 +57,17 @@ export function RepsDrawer({ initialValue, onConfirm }: Props) {
 
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>select reps</DrawerTitle>
+          <DrawerTitle>set reps</DrawerTitle>
         </DrawerHeader>
 
-        {/* Kontener nadrzędny z overflow-hidden */}
         <div className="relative mx-auto h-48 w-full max-w-xs overflow-hidden">
-          {/* Ramka zaznaczenia */}
           <div className="pointer-events-none absolute left-0 top-1/2 z-10 h-12 w-full -translate-y-1/2 border-y bg-muted/20" />
 
           <div
             ref={scrollRef}
-            /* Dodano overflow-x-hidden i w-full, aby zablokować ruch poziomy */
             className="h-full w-full overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scrollbar-hide"
             onScroll={handleScroll}
           >
-            {/* Górny margines przewijania */}
             <div style={{ height: ITEM_HEIGHT * 1.5 }} className="w-full" />
 
             {values.map((v) => (
@@ -87,12 +83,11 @@ export function RepsDrawer({ initialValue, onConfirm }: Props) {
               </div>
             ))}
 
-            {/* Dolny margines przewijania */}
             <div style={{ height: ITEM_HEIGHT * 1.5 }} className="w-full" />
           </div>
         </div>
 
-        <DrawerFooter>
+        <DrawerFooter className="max-w-70 mx-auto w-full">
           <DrawerClose asChild>
             <PushButton onClick={() => onConfirm(selected)} />
           </DrawerClose>

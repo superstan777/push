@@ -32,7 +32,6 @@ export function RestTimer({ duration, onComplete }: Props) {
       const elapsed = (now - startTimeRef.current) / 1000;
       const progress = Math.min(elapsed / duration, 1);
 
-      // 🔥 120fps: bez React re-render
       const offset = circumference * (1 - progress);
       circleRef.current.style.strokeDashoffset = `${offset}`;
 

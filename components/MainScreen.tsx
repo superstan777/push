@@ -15,16 +15,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   const { currentDayNumber } = userData;
 
-  // Wyświetlany dzień
   const activeDisplayDay = isAlreadyDoneToday
     ? currentDayNumber - 1
     : currentDayNumber;
 
-  // Ilość kropek (cykle po 28 dni)
   const totalCycles = Math.ceil(currentDayNumber / 28);
   const totalDots = totalCycles * 28;
 
-  // KLUCZOWA LOGIKA
   const completedUntil = currentDayNumber - 1;
   const activeDay = isAlreadyDoneToday ? null : currentDayNumber;
 
@@ -53,8 +50,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                 dot.isCompleted
                   ? "bg-primary"
                   : dot.isCurrent
-                  ? "bg-primary animate-pulse scale-125 shadow-[0_0_8px_rgba(var(--primary),0.5)]"
-                  : "bg-muted-foreground/20"
+                    ? "bg-primary animate-pulse scale-125 shadow-[0_0_8px_rgba(var(--primary),0.5)]"
+                    : "bg-muted-foreground/20"
               }`}
             />
           ))}

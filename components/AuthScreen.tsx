@@ -143,7 +143,7 @@ export function AuthScreen() {
             >
               Terms of Service
             </a>{" "}
-            apply.
+            apply
           </p>
         </>
       )}

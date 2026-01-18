@@ -53,7 +53,7 @@ export const getOrCreateUser = async (
 export interface Workout {
   type: "test" | "workout";
   plannedSets: number[];
-  doneSets?: number[]; // To pole dodamy po zakończeniu
+  doneSets?: number[];
   isCompleted: boolean;
   completedAt?: Timestamp;
 }
@@ -69,8 +69,6 @@ export const getWorkout = async (
   }
   return null;
 };
-
-// src/lib/db-service.ts
 
 export const generateWorkoutPlan = (
   dayNumber: number,
@@ -122,18 +120,14 @@ export const completeWorkout = async (
     currentDay.toString(),
   );
 
-  // 1. Pobieramy aktualne dane użytkownika
   const userSnap = await getDoc(userRef);
   const userData = userSnap.data() as UserData;
 
-  // 2. Wyliczamy wynik testu (jeśli to był dzień testu)
   const isTestDay = (currentDay - 1) % 28 === 0;
   const testResult = isTestDay ? doneSets[0] : userData.lastTestResult;
 
-  // 3. Pobieramy dzisiejszą datę w formacie YYYY-MM-DD
   const today = new Date().toISOString().split("T")[0];
 
-  // 4. Oznaczamy bieżący trening jako zakończony
   await setDoc(
     currentWorkoutRef,
     {
@@ -144,19 +138,17 @@ export const completeWorkout = async (
     { merge: true },
   );
 
-  // 5. Aktualizujemy profil użytkownika (następny dzień, wynik testu i data zakończenia)
   const nextDay = currentDay + 1;
   await setDoc(
     userRef,
     {
       currentDayNumber: nextDay,
       lastTestResult: testResult,
-      lastCompletedDate: today, // To pole blokuje kolejny trening dzisiaj
+      lastCompletedDate: today,
     },
     { merge: true },
   );
 
-  // 6. Generujemy i zapisujemy plan na kolejny dzień treningowy
   const nextWorkoutRef = doc(db, "users", uid, "workouts", nextDay.toString());
   const nextWorkout = generateWorkoutPlan(nextDay, testResult);
   await setDoc(nextWorkoutRef, nextWorkout);

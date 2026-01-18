@@ -26,7 +26,7 @@ export const PushButton: React.FC<PushButtonProps> = ({
     <Button
       className="w-full flex items-center justify-center"
       onClick={onClick}
-      disabled={disabled || isLoading || tooManyRequests}
+      disabled={disabled || isLoading || tooManyRequests || isDoneToday}
     >
       {renderContent()}
     </Button>

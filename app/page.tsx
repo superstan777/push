@@ -2,11 +2,14 @@
 import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { getOrCreateUser, getWorkout } from "@/lib/db-service";
-import type { UserData, Workout } from "@/lib/db-service";
+import {
+  getOrCreateUser,
+  getWorkout,
+  type Workout,
+  type UserData,
+} from "@/lib/db-service";
 import { AuthScreen } from "@/components/AuthScreen";
 import { MainScreen } from "@/components/MainScreen";
-
 import { WorkoutScreen } from "@/components/WorkoutScreen";
 import { completeWorkout } from "@/lib/db-service";
 import { Spinner } from "@/components/ui/spinner";
@@ -15,10 +18,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
-
-  // Stan przechowujący dane pobranego treningu
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
-  // Stan sterujący widokiem (czy jesteśmy w trakcie treningu)
   const [isTraining, setIsTraining] = useState(false);
 
   useEffect(() => {
@@ -39,7 +39,6 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-  // Funkcja odpalana po kliknięciu "Push" w MainScreen
   const handleStartTraining = async () => {
     if (!user || !userData) return;
 
@@ -63,24 +62,20 @@ export default function Home() {
     );
 
   return (
-    <main className="h-dvh bg-background">
+    <main className="h-dvh max-w-70 mx-auto">
       {user && userData ? (
         isTraining && activeWorkout ? (
-          // src/App.tsx
-
           <WorkoutScreen
             workout={activeWorkout}
             onComplete={async (results) => {
               setLoading(true);
               try {
-                // results to tablica [20, 15, 10] przekazana z WorkoutScreen
                 await completeWorkout(
                   user.uid,
                   userData.currentDayNumber,
                   results,
                 );
 
-                // Ponowne pobranie danych użytkownika, aby kropki w MainScreen się odświeżyły
                 const updatedData = await getOrCreateUser(
                   user.uid,
                   user.phoneNumber,
