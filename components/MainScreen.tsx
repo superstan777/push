@@ -13,7 +13,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const today = new Date().toISOString().split("T")[0];
   const isAlreadyDoneToday = userData.lastCompletedDate === today;
 
-  const { currentDayNumber } = userData;
+  const { currentDayNumber, pushupsDone } = userData;
 
   const activeDisplayDay = isAlreadyDoneToday
     ? currentDayNumber - 1
@@ -40,7 +40,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   return (
     <div className="flex flex-col items-center justify-center h-full p-6">
       <div className="w-full max-w-70 space-y-12">
-        <h1 className="tracking-tighter">day {activeDisplayDay}</h1>
+        <div className="flex items-baseline justify-between tracking-tighter">
+          <h1>day {activeDisplayDay}</h1>
+          <h1>{pushupsDone}</h1>
+        </div>
 
         <div className="grid grid-cols-7 gap-4 justify-items-center">
           {dots.map((dot) => (
@@ -57,7 +60,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           ))}
         </div>
 
-        <PushButton onClick={onStart} isDoneToday={isAlreadyDoneToday} />
+        <PushButton onClick={onStart} isDoneToday={!isAlreadyDoneToday} />
       </div>
     </div>
   );

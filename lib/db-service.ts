@@ -7,6 +7,15 @@ export interface UserData {
   lastTestResult: number;
   startDate: Timestamp;
   lastCompletedDate?: string;
+  pushupsDone: number;
+}
+
+export interface Workout {
+  type: "test" | "workout";
+  plannedSets: number[];
+  doneSets?: number[];
+  isCompleted: boolean;
+  completedAt?: Timestamp;
 }
 
 export const getOrCreateUser = async (
@@ -28,6 +37,7 @@ export const getOrCreateUser = async (
     currentDayNumber: startDay,
     lastTestResult: initialTestResult,
     startDate: Timestamp.now(),
+    pushupsDone: 0,
   };
 
   await setDoc(userRef, newUser);
@@ -50,14 +60,6 @@ export const getOrCreateUser = async (
   return newUser;
 };
 
-export interface Workout {
-  type: "test" | "workout";
-  plannedSets: number[];
-  doneSets?: number[];
-  isCompleted: boolean;
-  completedAt?: Timestamp;
-}
-
 export const getWorkout = async (
   uid: string,
   dayNumber: number,
@@ -74,34 +76,24 @@ export const generateWorkoutPlan = (
   dayNumber: number,
   lastTestResult: number,
 ): Workout => {
-  // 1. DZIEŃ TESTU (nie zmieniamy)
   if ((dayNumber - 1) % 28 === 0) {
     return { type: "test", plannedSets: [0], isCompleted: false };
   }
 
-  // 2. LOGIKA AGRESYWNEGO TRENINGU
-
-  // Bazujemy na 50% wyniku testu jako fundamencie dla najmocniejszej serii
-  // Dla testu 20: base to 10.
   const base = Math.max(2, Math.floor(lastTestResult * 0.5));
-
-  // Modyfikator dnia (żeby poniedziałek był inny niż środa)
-  // Day 2 (wtorek) -> mod 0, Day 3 -> mod 1 itd.
   const dayInWeekModifier = dayNumber % 7;
 
-  // Budujemy objętość: 5 serii
-  // Przykład dla testu 20: [10, 12, 10, 10, 14] = 56 pompek (ponad 2.5x wynik testu)
   const plannedSets = [
-    base, // Seria 1: 50% maxa
-    base + 2, // Seria 2: Przeciążenie
-    base, // Seria 3: Utrzymanie
-    base, // Seria 4: Utrzymanie
-    base + 4 + dayInWeekModifier, // Seria 5: Finiszer (rośnie z każdym dniem tygodnia)
+    base,
+    base + 2,
+    base,
+    base,
+    base + 4 + dayInWeekModifier,
   ];
 
   return {
     type: "workout",
-    plannedSets: plannedSets,
+    plannedSets,
     isCompleted: false,
   };
 };
@@ -126,25 +118,30 @@ export const completeWorkout = async (
   const isTestDay = (currentDay - 1) % 28 === 0;
   const testResult = isTestDay ? doneSets[0] : userData.lastTestResult;
 
+  const workoutPushups = doneSets.reduce((sum, v) => sum + v, 0);
+  const totalPushups = (userData.pushupsDone ?? 0) + workoutPushups;
+
   const today = new Date().toISOString().split("T")[0];
 
   await setDoc(
     currentWorkoutRef,
     {
       isCompleted: true,
-      doneSets: doneSets,
+      doneSets,
       completedAt: Timestamp.now(),
     },
     { merge: true },
   );
 
   const nextDay = currentDay + 1;
+
   await setDoc(
     userRef,
     {
       currentDayNumber: nextDay,
       lastTestResult: testResult,
       lastCompletedDate: today,
+      pushupsDone: totalPushups,
     },
     { merge: true },
   );

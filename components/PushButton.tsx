@@ -17,7 +17,7 @@ export const PushButton: React.FC<PushButtonProps> = ({
   tooManyRequests = false,
 }) => {
   const renderContent = () => {
-    if (isLoading) return <Spinner className="w-4 h-4" />;
+    if (isLoading) return <Spinner />;
     if (tooManyRequests) return "try again in 1 hour";
     return isDoneToday ? "push tomorrow" : "push";
   };
