@@ -5,6 +5,7 @@ import {
   signInWithPhoneNumber,
   type ConfirmationResult,
 } from "firebase/auth";
+import { FirebaseError } from "firebase/app";
 
 import { Input } from "@/components/ui/input";
 import {
@@ -19,13 +20,14 @@ export function AuthScreen() {
   const [phone, setPhone] = useState("+48");
   const [otp, setOtp] = useState("");
   const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(
-    null
+    null,
   );
 
   const [loading, setLoading] = useState(false);
   const [hasOtpError, setHasOtpError] = useState(false);
   const [otpKey, setOtpKey] = useState(0);
-  const [isVerified, setIsVerified] = useState(false); // ✅ KLUCZOWY STAN
+  const [isVerified, setIsVerified] = useState(false);
+  const [tooManyRequestsError, setTooManyRequestsError] = useState(false);
 
   const hasSubmittedRef = useRef(false);
 
@@ -34,7 +36,7 @@ export function AuthScreen() {
       (window as any).recaptchaVerifier = new RecaptchaVerifier(
         auth,
         "recaptcha-container",
-        { size: "invisible" }
+        { size: "invisible" },
       );
     }
   };
@@ -42,12 +44,20 @@ export function AuthScreen() {
   const onSendSMS = async () => {
     try {
       setLoading(true);
+      setTooManyRequestsError(false);
       setupRecaptcha();
       const verifier = (window as any).recaptchaVerifier;
       const result = await signInWithPhoneNumber(auth, phone, verifier);
       setConfirmation(result);
     } catch (err) {
-      console.error(err);
+      if (
+        err instanceof FirebaseError &&
+        err.code === "auth/too-many-requests"
+      ) {
+        setTooManyRequestsError(true);
+      } else {
+        console.error(err);
+      }
     } finally {
       setLoading(false);
     }
@@ -62,7 +72,7 @@ export function AuthScreen() {
       setHasOtpError(false);
 
       await confirmation.confirm(otp);
-      setIsVerified(true); // ✅ BLOKUJE POWRÓT OTP
+      setIsVerified(true);
     } catch (err) {
       hasSubmittedRef.current = false;
       setOtp("");
@@ -73,14 +83,12 @@ export function AuthScreen() {
     }
   };
 
-  // auto submit
   useEffect(() => {
     if (otp.length === 6) {
       onVerifyCode();
     }
   }, [otp]);
 
-  // blur podczas loadingu
   useEffect(() => {
     if (loading) {
       (document.activeElement as HTMLElement | null)?.blur();
@@ -92,27 +100,32 @@ export function AuthScreen() {
     if (hasOtpError) setHasOtpError(false);
   };
 
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    if (tooManyRequestsError) setTooManyRequestsError(false);
+  };
+
   return (
     <div className="flex flex-col gap-6 p-8 items-center justify-center h-screen">
       <div id="recaptcha-container" />
 
-      {/* PHONE */}
       {!confirmation && (
         <>
           <Input
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => handlePhoneChange(e.target.value)}
             placeholder="+48 600 000 000"
           />
 
           <PushButton
             onClick={onSendSMS}
-            disabled={loading || phone.length < 9}
+            disabled={phone.length < 9}
+            isLoading={loading}
+            tooManyRequests={tooManyRequestsError}
           />
         </>
       )}
 
-      {/* OTP */}
       {confirmation && !isVerified && (
         <div className="relative w-full max-w-xs flex justify-center">
           <InputOTP
@@ -143,7 +156,6 @@ export function AuthScreen() {
         </div>
       )}
 
-      {/* VERIFIED STATE (opcjonalny placeholder) */}
       {isVerified && (
         <div className="flex items-center justify-center">
           <Spinner />
