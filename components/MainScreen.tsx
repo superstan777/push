@@ -6,11 +6,19 @@ interface MainScreenProps {
   userData: UserData;
 }
 
+const getLocalDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export const MainScreen: React.FC<MainScreenProps> = ({
   userData,
   onStart,
 }) => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
   const isAlreadyDoneToday = userData.lastCompletedDate === today;
 
   const { currentDayNumber, pushupsDone } = userData;
@@ -60,7 +68,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           ))}
         </div>
 
-        <PushButton onClick={onStart} isDoneToday={!isAlreadyDoneToday} />
+        <PushButton onClick={onStart} isDoneToday={isAlreadyDoneToday} />
       </div>
     </div>
   );

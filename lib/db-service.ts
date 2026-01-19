@@ -1,6 +1,14 @@
 import { db } from "./firebase";
 import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 
+const getLocalDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export interface UserData {
   phoneNumber: string;
   currentDayNumber: number;
@@ -115,14 +123,18 @@ export const completeWorkout = async (
   const userSnap = await getDoc(userRef);
   const userData = userSnap.data() as UserData;
 
+  // 1. Czy to dzień testu
   const isTestDay = (currentDay - 1) % 28 === 0;
   const testResult = isTestDay ? doneSets[0] : userData.lastTestResult;
 
+  // 2. Sumujemy pompki z tego treningu
   const workoutPushups = doneSets.reduce((sum, v) => sum + v, 0);
   const totalPushups = (userData.pushupsDone ?? 0) + workoutPushups;
 
-  const today = new Date().toISOString().split("T")[0];
+  // 3. Lokalna data użytkownika (KLUCZOWE)
+  const today = getLocalDateString();
 
+  // 4. Oznaczamy trening jako ukończony
   await setDoc(
     currentWorkoutRef,
     {
@@ -133,6 +145,7 @@ export const completeWorkout = async (
     { merge: true },
   );
 
+  // 5. Aktualizujemy usera
   const nextDay = currentDay + 1;
 
   await setDoc(
@@ -146,7 +159,9 @@ export const completeWorkout = async (
     { merge: true },
   );
 
+  // 6. Generujemy kolejny trening
   const nextWorkoutRef = doc(db, "users", uid, "workouts", nextDay.toString());
+
   const nextWorkout = generateWorkoutPlan(nextDay, testResult);
   await setDoc(nextWorkoutRef, nextWorkout);
 };
