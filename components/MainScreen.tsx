@@ -1,47 +1,36 @@
 import type { UserData } from "@/lib/db-service";
 import { PushButton } from "./PushButton";
+import { getLocalDateString } from "@/lib/utils";
 
 interface MainScreenProps {
-  onStart: () => void;
+  onStart: (isExtra?: boolean) => void;
   userData: UserData;
 }
-
-const getLocalDateString = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
 
 export const MainScreen: React.FC<MainScreenProps> = ({
   userData,
   onStart,
 }) => {
   const today = getLocalDateString();
-  const isAlreadyDoneToday = userData.lastCompletedDate === today;
+
+  const isPrimaryDoneToday = userData.lastCompletedDate === today;
+  const isExtraDoneToday = userData.lastExtraCompletedDate === today;
 
   const { currentDayNumber, pushupsDone } = userData;
 
-  const activeDisplayDay = isAlreadyDoneToday
+  const activeDisplayDay = isPrimaryDoneToday
     ? currentDayNumber - 1
     : currentDayNumber;
-
   const totalCycles = Math.ceil(currentDayNumber / 28);
   const totalDots = totalCycles * 28;
-
   const completedUntil = currentDayNumber - 1;
-  const activeDay = isAlreadyDoneToday ? null : currentDayNumber;
+  const activeDay = isPrimaryDoneToday ? null : currentDayNumber;
 
-  const dots = Array.from({ length: totalDots }, (_, i) => {
-    const dayIdx = i + 1;
-
-    return {
-      dayIdx,
-      isCompleted: dayIdx <= completedUntil,
-      isCurrent: dayIdx === activeDay,
-    };
-  });
+  const dots = Array.from({ length: totalDots }, (_, i) => ({
+    dayIdx: i + 1,
+    isCompleted: i + 1 <= completedUntil,
+    isCurrent: i + 1 === activeDay,
+  }));
 
   const dotBaseClass = "w-3 h-3 rounded-full transition-all";
 
@@ -68,7 +57,17 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           ))}
         </div>
 
-        <PushButton onClick={onStart} isDoneToday={isAlreadyDoneToday} />
+        <PushButton
+          onClick={(isSecret) => {
+            if (isPrimaryDoneToday && !isExtraDoneToday && isSecret) {
+              onStart(true);
+            } else {
+              onStart(false);
+            }
+          }}
+          isDoneToday={isPrimaryDoneToday}
+          isExtraDoneToday={isExtraDoneToday}
+        />
       </div>
     </div>
   );

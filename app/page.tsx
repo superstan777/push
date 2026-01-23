@@ -5,13 +5,13 @@ import { onAuthStateChanged } from "firebase/auth";
 import {
   getOrCreateUser,
   getWorkout,
+  completeWorkout,
   type Workout,
   type UserData,
 } from "@/lib/db-service";
 import { AuthScreen } from "@/components/AuthScreen";
 import { MainScreen } from "@/components/MainScreen";
 import { WorkoutScreen } from "@/components/WorkoutScreen";
-import { completeWorkout } from "@/lib/db-service";
 import { Spinner } from "@/components/ui/spinner";
 
 export default function Home() {
@@ -20,6 +20,7 @@ export default function Home() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   const [isTraining, setIsTraining] = useState(false);
+  const [isExtraTraining, setIsExtraTraining] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -39,18 +40,30 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-  const handleStartTraining = async () => {
+  const handleStartTraining = async (isExtra = false) => {
     if (!user || !userData) return;
 
+    const today = new Date().toISOString().split("T")[0];
+    const isPrimaryDoneToday = userData.lastCompletedDate === today;
+    const isExtraDoneToday = userData.lastExtraCompletedDate === today;
+
+    if (isExtra && isExtraDoneToday) {
+      alert("Można wykonać maksymalnie 2 treningi w ciągu dnia");
+      return;
+    }
+
     setLoading(true);
-    const workout = await getWorkout(user.uid, userData.currentDayNumber);
+
+    const workout = await getWorkout(user.uid, userData.currentWorkoutNumber);
 
     if (workout) {
       setActiveWorkout(workout);
+      setIsExtraTraining(isExtra);
       setIsTraining(true);
     } else {
-      alert("Nie znaleziono planu na dziś w bazie danych (workouts/1)!");
+      alert("Nie znaleziono planu na dziś w bazie danych!");
     }
+
     setLoading(false);
   };
 
@@ -67,23 +80,23 @@ export default function Home() {
         isTraining && activeWorkout ? (
           <WorkoutScreen
             workout={activeWorkout}
-            onComplete={async (results) => {
+            onComplete={async (results, isExtraParam = false) => {
               setLoading(true);
               try {
                 await completeWorkout(
                   user.uid,
-                  userData.currentDayNumber,
+                  userData,
                   results,
+                  isExtraTraining,
                 );
-
                 const updatedData = await getOrCreateUser(
                   user.uid,
                   user.phoneNumber,
                 );
                 setUserData(updatedData);
-
                 setIsTraining(false);
                 setActiveWorkout(null);
+                setIsExtraTraining(false);
               } catch (e) {
                 console.error("Błąd zapisu:", e);
               } finally {
