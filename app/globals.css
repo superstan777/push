@@ -154,3 +154,18 @@
 .grecaptcha-badge {
   display: none !important;
 }
+
+@keyframes radar-wave {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.radar-wave {
+  animation: radar-wave 3.3s ease-out infinite;
+}

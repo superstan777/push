@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 interface PushButtonProps {
   onClick?: (isSecret?: boolean) => void;
+  onSecretUnlocked?: () => void;
   isDoneToday?: boolean;
   isExtraDoneToday?: boolean;
   disabled?: boolean;
@@ -14,6 +15,7 @@ interface PushButtonProps {
 
 export const PushButton: FC<PushButtonProps> = ({
   onClick,
+  onSecretUnlocked,
   isDoneToday = false,
   isExtraDoneToday = false,
   disabled = false,
@@ -25,6 +27,12 @@ export const PushButton: FC<PushButtonProps> = ({
   useEffect(() => {
     if (!isDoneToday) setPressCounter(0);
   }, [isDoneToday]);
+
+  useEffect(() => {
+    if (isDoneToday && pressCounter === 5 && !isExtraDoneToday) {
+      onSecretUnlocked?.();
+    }
+  }, [pressCounter, isDoneToday, isExtraDoneToday, onSecretUnlocked]);
 
   const isSecretUnlocked = useMemo(() => {
     return isDoneToday && pressCounter >= 5 && !isExtraDoneToday;
@@ -50,6 +58,7 @@ export const PushButton: FC<PushButtonProps> = ({
       }
       return;
     }
+
     onClick?.(isSecretUnlocked);
   };
 
